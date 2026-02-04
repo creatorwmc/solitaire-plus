@@ -217,6 +217,18 @@ const Solitaire = () => {
     const saved = localStorage.getItem('solitaire_sound');
     return saved !== 'false';
   });
+  const [customBackImage, setCustomBackImage] = useState(() => {
+    return localStorage.getItem('solitaire_customBack') || null;
+  });
+  const [customFaceImage, setCustomFaceImage] = useState(() => {
+    return localStorage.getItem('solitaire_customFace') || null;
+  });
+  const [useCustomBack, setUseCustomBack] = useState(() => {
+    return localStorage.getItem('solitaire_useCustomBack') === 'true';
+  });
+  const [useCustomFace, setUseCustomFace] = useState(() => {
+    return localStorage.getItem('solitaire_useCustomFace') === 'true';
+  });
   const [showSettings, setShowSettings] = useState(false);
   const [dealingCards, setDealingCards] = useState(false);
   const [dealtCardCount, setDealtCardCount] = useState(0);
@@ -224,6 +236,8 @@ const Solitaire = () => {
   const canvasRef = useRef(null);
   const particlesRef = useRef([]);
   const animationFrameRef = useRef(null);
+  const backImageInputRef = useRef(null);
+  const faceImageInputRef = useRef(null);
 
   const currentDesign = getDesignById(cardBackDesign);
 
@@ -239,6 +253,78 @@ const Solitaire = () => {
   useEffect(() => {
     localStorage.setItem('solitaire_sound', soundEnabled.toString());
   }, [soundEnabled]);
+
+  useEffect(() => {
+    if (customBackImage) {
+      localStorage.setItem('solitaire_customBack', customBackImage);
+    } else {
+      localStorage.removeItem('solitaire_customBack');
+    }
+  }, [customBackImage]);
+
+  useEffect(() => {
+    if (customFaceImage) {
+      localStorage.setItem('solitaire_customFace', customFaceImage);
+    } else {
+      localStorage.removeItem('solitaire_customFace');
+    }
+  }, [customFaceImage]);
+
+  useEffect(() => {
+    localStorage.setItem('solitaire_useCustomBack', useCustomBack.toString());
+  }, [useCustomBack]);
+
+  useEffect(() => {
+    localStorage.setItem('solitaire_useCustomFace', useCustomFace.toString());
+  }, [useCustomFace]);
+
+  // Handle image upload for card back
+  const handleBackImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result;
+      if (base64) {
+        setCustomBackImage(base64);
+        setUseCustomBack(true);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Handle image upload for card face
+  const handleFaceImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result;
+      if (base64) {
+        setCustomFaceImage(base64);
+        setUseCustomFace(true);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeCustomBack = () => {
+    setCustomBackImage(null);
+    setUseCustomBack(false);
+    if (backImageInputRef.current) {
+      backImageInputRef.current.value = '';
+    }
+  };
+
+  const removeCustomFace = () => {
+    setCustomFaceImage(null);
+    setUseCustomFace(false);
+    if (faceImageInputRef.current) {
+      faceImageInputRef.current.value = '';
+    }
+  };
 
   // Timer effect
   useEffect(() => {
@@ -883,6 +969,23 @@ const Solitaire = () => {
       }
     };
 
+    // If custom back image is set and enabled, use it
+    if (useCustomBack && customBackImage) {
+      return (
+        <div
+          className="card card-back card-back-custom"
+          style={{
+            backgroundImage: `url(${customBackImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            border: '2px solid #333'
+          }}
+        >
+          {showCount && <span className="stock-count">{count}</span>}
+        </div>
+      );
+    }
+
     return (
       <div
         className="card card-back"
@@ -965,12 +1068,20 @@ const Solitaire = () => {
     }
 
     const isFaceCard = ['J', 'Q', 'K'].includes(card.rank);
+    const hasCustomFace = useCustomFace && customFaceImage;
+
+    const cardStyle = hasCustomFace ? {
+      backgroundImage: `linear-gradient(rgba(255,255,255,0.85), rgba(255,255,255,0.85)), url(${customFaceImage})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center'
+    } : {};
 
     return (
       <div
-        className={`card card-face ${card.color} ${isSelected ? 'selected' : ''} ${isFaceCard ? 'face-card' : ''}`}
+        className={`card card-face ${card.color} ${isSelected ? 'selected' : ''} ${isFaceCard ? 'face-card' : ''} ${hasCustomFace ? 'custom-face' : ''}`}
         onClick={onClick}
         onDoubleClick={onDoubleClick}
+        style={cardStyle}
       >
         <div className="card-corner top-left">
           <span className="card-rank">{card.rank}</span>
@@ -1069,8 +1180,8 @@ const Solitaire = () => {
               {CARD_BACK_DESIGNS.map(design => (
                 <button
                   key={design.id}
-                  className={`card-back-option ${cardBackDesign === design.id ? 'selected' : ''}`}
-                  onClick={() => setCardBackDesign(design.id)}
+                  className={`card-back-option ${cardBackDesign === design.id && !useCustomBack ? 'selected' : ''}`}
+                  onClick={() => { setCardBackDesign(design.id); setUseCustomBack(false); }}
                   title={design.name}
                   style={{
                     background: design.background,
@@ -1081,6 +1192,61 @@ const Solitaire = () => {
                 </button>
               ))}
             </div>
+          </div>
+          <div className="settings-section">
+            <label className="settings-label">Custom Card Back Photo</label>
+            <div className="custom-image-section">
+              <input
+                ref={backImageInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleBackImageUpload}
+                className="image-input"
+                id="back-image-input"
+              />
+              <label htmlFor="back-image-input" className="upload-btn">
+                📷 {customBackImage ? 'Change Photo' : 'Add Photo'}
+              </label>
+              {customBackImage && (
+                <>
+                  <div className={`custom-preview ${useCustomBack ? 'active' : ''}`} onClick={() => setUseCustomBack(true)}>
+                    <img src={customBackImage} alt="Custom back" />
+                    {useCustomBack && <span className="preview-check">✓</span>}
+                  </div>
+                  <button className="remove-btn" onClick={removeCustomBack}>✕</button>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="settings-section">
+            <label className="settings-label">Custom Card Face Photo</label>
+            <div className="custom-image-section">
+              <input
+                ref={faceImageInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFaceImageUpload}
+                className="image-input"
+                id="face-image-input"
+              />
+              <label htmlFor="face-image-input" className="upload-btn">
+                📷 {customFaceImage ? 'Change Photo' : 'Add Photo'}
+              </label>
+              {customFaceImage && (
+                <>
+                  <div className={`custom-preview ${useCustomFace ? 'active' : ''}`} onClick={() => setUseCustomFace(!useCustomFace)}>
+                    <img src={customFaceImage} alt="Custom face" />
+                    {useCustomFace && <span className="preview-check">✓</span>}
+                  </div>
+                  <button className="remove-btn" onClick={removeCustomFace}>✕</button>
+                </>
+              )}
+            </div>
+            {customFaceImage && (
+              <p className="custom-hint">Tap preview to toggle on/off</p>
+            )}
           </div>
           <button className="close-settings" onClick={() => setShowSettings(false)}>
             Done
