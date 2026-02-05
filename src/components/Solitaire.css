@@ -2395,6 +2395,13 @@
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
+.daily-banner-date {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
 .daily-banner-desc {
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.9);

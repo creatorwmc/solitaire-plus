@@ -2216,7 +2216,10 @@ const Solitaire = ({ onSwitchGame }) => {
         <div className="daily-banner" onClick={() => setShowDailyBanner(false)}>
           <div className="daily-banner-icon">📅</div>
           <div className="daily-banner-content">
-            <div className="daily-banner-title">Daily Challenge Started!</div>
+            <div className="daily-banner-title">Daily Challenge</div>
+            <div className="daily-banner-date">
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            </div>
             {!hasSeenDailyExplanation && (
               <div className="daily-banner-desc">
                 Same card shuffle for everyone worldwide today! Compare your score with friends and family.
@@ -2295,7 +2298,7 @@ const Solitaire = ({ onSwitchGame }) => {
       <div className="game-header">
         <div className="header-left">
           <h1 className="game-title">Solitaire</h1>
-          <span className="game-subtitle">{isDailyChallenge ? 'Daily' : 'Plus'}</span>
+          <span className="game-subtitle">{isDailyChallenge ? new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Plus'}</span>
         </div>
         <div className="header-stats">
           {zenMode && (
