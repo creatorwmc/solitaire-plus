@@ -1,4 +1,4 @@
-# Solitaire Deluxe - Claude Code Instructions
+# Solitaire Plus - Claude Code Instructions
 
 ## Deployment Policy
 
