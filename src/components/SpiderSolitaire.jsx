@@ -277,6 +277,17 @@ const SpiderSolitaire = ({ onSwitchGame }) => {
         const cardsToMove = sourcePile.slice(cardIndex);
         if (!isValidSequence(cardsToMove)) break;
 
+        // Skip if card is already connected (same suit sequence with card below)
+        if (cardIndex > 0) {
+          const cardBelow = sourcePile[cardIndex - 1];
+          if (cardBelow.faceUp &&
+              cardBelow.suit === card.suit &&
+              cardBelow.value === card.value + 1) {
+            // Card is already in a valid same-suit sequence, skip suggesting this move
+            continue;
+          }
+        }
+
         // Find all valid target piles for this sequence
         for (let targetPileIndex = 0; targetPileIndex < tableau.length; targetPileIndex++) {
           if (targetPileIndex === sourcePileIndex) continue;
@@ -701,10 +712,14 @@ const SpiderSolitaire = ({ onSwitchGame }) => {
       hintMove.sourcePileIndex === pileIndex &&
       cardIndex === hintMove.sourceCardIndex;
 
+    const isHintTarget = hintMove &&
+      hintMove.targetPileIndex === pileIndex &&
+      isTop;
+
     return (
       <div
         key={card.id}
-        className={`spider-card ${card.faceUp ? 'face-up' : 'face-down'} ${card.color} ${isSelected ? 'selected' : ''} ${isTop ? 'top-card' : ''} ${isHintSource ? 'hint-source' : ''}`}
+        className={`spider-card ${card.faceUp ? 'face-up' : 'face-down'} ${card.color} ${isSelected ? 'selected' : ''} ${isTop ? 'top-card' : ''} ${isHintSource ? 'hint-source' : ''} ${isHintTarget ? 'hint-target' : ''}`}
         style={{ '--card-index': cardIndex }}
         onClick={() => card.faceUp && handleCardClick(pileIndex, cardIndex)}
       >
@@ -843,7 +858,7 @@ const SpiderSolitaire = ({ onSwitchGame }) => {
           {tableau.map((pile, pileIndex) => (
             <div
               key={pileIndex}
-              className={`spider-pile ${pile.length === 0 ? 'empty' : ''} ${hintMove && hintMove.targetPileIndex === pileIndex ? 'hint-target' : ''}`}
+              className={`spider-pile ${pile.length === 0 ? 'empty' : ''}`}
               onClick={() => pile.length === 0 && handleEmptyPileClick(pileIndex)}
             >
               {pile.length === 0 ? (

@@ -390,31 +390,24 @@
   }
 }
 
-/* Hint target - green glow */
-.spider-pile.hint-target {
-  position: relative;
+/* Hint target - green glow on target card */
+.spider-card.hint-target {
+  animation: targetPulse 1s ease-in-out infinite;
+  z-index: 10;
 }
 
-.spider-pile.hint-target::after {
-  content: '';
-  position: absolute;
-  top: -4px;
-  left: -4px;
-  right: -4px;
-  bottom: -4px;
-  border-radius: 10px;
-  border: 2px dashed rgba(0, 255, 136, 0.6);
-  animation: targetGlow 1s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 5;
-}
-
-@keyframes targetGlow {
+@keyframes targetPulse {
   0%, 100% {
-    box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+    box-shadow:
+      0 0 0 2px rgba(0, 255, 136, 0.8),
+      0 0 10px rgba(0, 255, 136, 0.4),
+      0 4px 8px rgba(0, 0, 0, 0.3);
   }
   50% {
-    box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+    box-shadow:
+      0 0 0 3px rgba(0, 255, 136, 1),
+      0 0 20px rgba(0, 255, 136, 0.6),
+      0 4px 12px rgba(0, 0, 0, 0.3);
   }
 }
 
