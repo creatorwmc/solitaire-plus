@@ -1,8 +1,8 @@
 # Solitaire Plus - Claude Code Instructions
 
-## Deployment Policy
+## ⚠️ Deployment Policy
 
-**DEFAULT: Local development only.**
+**DEFAULT: Local development only. NEVER deploy to production unless explicitly told "deploy to live".**
 
 When running or testing the application:
 - Use `npm run dev` for local development server (localhost:5173)
@@ -10,7 +10,7 @@ When running or testing the application:
 
 **Production deployment requires explicit instruction:**
 - User must say "deploy to live", "deploy to production", "deploy to Netlify", or similar
-- Manual production deploys should be rare exceptions
+- Without explicit instruction, always use localhost only
 
 ## Development Commands
 

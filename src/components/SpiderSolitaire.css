@@ -369,6 +369,55 @@
   z-index: 10;
 }
 
+/* Hint source animation - pulsing gold border */
+.spider-card.hint-source {
+  animation: hintPulse 1s ease-in-out infinite;
+  z-index: 10;
+}
+
+@keyframes hintPulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 2px rgba(255, 215, 0, 0.8),
+      0 0 10px rgba(255, 215, 0, 0.4),
+      0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px rgba(255, 215, 0, 1),
+      0 0 20px rgba(255, 215, 0, 0.6),
+      0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Hint target - green glow */
+.spider-pile.hint-target {
+  position: relative;
+}
+
+.spider-pile.hint-target::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 10px;
+  border: 2px dashed rgba(0, 255, 136, 0.6);
+  animation: targetGlow 1s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 5;
+}
+
+@keyframes targetGlow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+  }
+}
+
 .spider-card.top-card:hover {
   transform: translateY(-3px);
   box-shadow:
@@ -577,6 +626,23 @@
 }
 
 .spider-controls .btn-undo:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.spider-controls .btn-hint {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 165, 0, 0.1) 100%);
+  color: #ffd700;
+  border: 1px solid rgba(255, 215, 0, 0.4);
+}
+
+.spider-controls .btn-hint:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.3) 0%, rgba(255, 165, 0, 0.2) 100%);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+  transform: translateY(-2px);
+}
+
+.spider-controls .btn-hint:disabled {
   opacity: 0.3;
   cursor: not-allowed;
 }

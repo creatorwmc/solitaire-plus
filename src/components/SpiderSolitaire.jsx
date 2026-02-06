@@ -190,6 +190,8 @@ const SpiderSolitaire = ({ onSwitchGame }) => {
     return saved ? JSON.parse(saved) : { gamesPlayed: 0, gamesWon: 0, bestMoves: null, bestTime: null };
   });
   const [showSuitSelector, setShowSuitSelector] = useState(false);
+  const [hintMove, setHintMove] = useState(null);
+  const [lastClickInfo, setLastClickInfo] = useState(null);
 
   const canvasRef = useRef(null);
   const particlesRef = useRef([]);
@@ -233,6 +235,105 @@ const SpiderSolitaire = ({ onSwitchGame }) => {
     const topCard = targetPile[targetPile.length - 1];
     return topCard.faceUp && topCard.value === cards[0].value + 1;
   };
+
+  // Calculate chain length - how many consecutive same-suit descending cards from top
+  const getChainLength = useCallback((pile) => {
+    if (pile.length === 0) return 0;
+
+    let length = 0;
+    for (let i = pile.length - 1; i >= 0; i--) {
+      const card = pile[i];
+      if (!card.faceUp) break;
+
+      if (length === 0) {
+        length = 1;
+      } else {
+        const prevCard = pile[i + 1];
+        if (card.suit === prevCard.suit && card.value === prevCard.value + 1) {
+          length++;
+        } else {
+          break;
+        }
+      }
+    }
+    return length;
+  }, []);
+
+  // Find the best move available
+  const findBestMove = useCallback(() => {
+    let bestMove = null;
+    let bestScore = -1;
+
+    // Iterate through all tableau piles as source
+    for (let sourcePileIndex = 0; sourcePileIndex < tableau.length; sourcePileIndex++) {
+      const sourcePile = tableau[sourcePileIndex];
+      if (sourcePile.length === 0) continue;
+
+      // Find all valid moveable sequences starting from each face-up card
+      for (let cardIndex = sourcePile.length - 1; cardIndex >= 0; cardIndex--) {
+        const card = sourcePile[cardIndex];
+        if (!card.faceUp) break;
+
+        const cardsToMove = sourcePile.slice(cardIndex);
+        if (!isValidSequence(cardsToMove)) break;
+
+        // Find all valid target piles for this sequence
+        for (let targetPileIndex = 0; targetPileIndex < tableau.length; targetPileIndex++) {
+          if (targetPileIndex === sourcePileIndex) continue;
+
+          const targetPile = tableau[targetPileIndex];
+          if (canMoveToTableau(cardsToMove, targetPile)) {
+            // Calculate score for this move
+            let score = 0;
+
+            // Prefer non-empty piles over empty piles
+            if (targetPile.length > 0) {
+              score += 100;
+
+              // Prefer longer chains (same suit)
+              const topCard = targetPile[targetPile.length - 1];
+              if (topCard.suit === cardsToMove[0].suit) {
+                // Same suit - this continues a chain
+                score += 200 + getChainLength(targetPile);
+              }
+            }
+
+            // Prefer moves that reveal hidden cards
+            if (cardIndex > 0 && !sourcePile[cardIndex - 1].faceUp) {
+              score += 50;
+            }
+
+            if (score > bestScore) {
+              bestScore = score;
+              bestMove = {
+                sourcePileIndex,
+                sourceCardIndex: cardIndex,
+                targetPileIndex,
+                cards: cardsToMove
+              };
+            }
+          }
+        }
+      }
+    }
+
+    return bestMove;
+  }, [tableau, getChainLength]);
+
+  // Handle hint button click
+  const handleHint = useCallback(() => {
+    const move = findBestMove();
+    if (move) {
+      setHintMove(move);
+      // Clear hint after 3 seconds
+      setTimeout(() => setHintMove(null), 3000);
+    }
+  }, [findBestMove]);
+
+  // Clear hint when a move is made
+  const clearHint = useCallback(() => {
+    setHintMove(null);
+  }, []);
 
   // Check for completed suit (K to A of same suit)
   const checkForCompletedSuit = useCallback((pile) => {
@@ -340,6 +441,8 @@ const SpiderSolitaire = ({ onSwitchGame }) => {
     setHistory([]);
     setTimer(0);
     setIsPlaying(true);
+    setHintMove(null);
+    setLastClickInfo(null);
     particlesRef.current = [];
 
     setStats(prev => {
@@ -372,6 +475,79 @@ const SpiderSolitaire = ({ onSwitchGame }) => {
     }
   }, [completedSuits, gameWon, moves, timer]);
 
+  // Execute a move (shared by manual moves and auto-move)
+  const executeMove = useCallback((sourcePileIndex, sourceCardIndex, targetPileIndex, cardsToMove) => {
+    saveToHistory();
+    clearHint();
+
+    const newTableau = [...tableau];
+    // Remove cards from source
+    newTableau[sourcePileIndex] = tableau[sourcePileIndex].slice(0, sourceCardIndex);
+    // Flip top card if needed
+    if (newTableau[sourcePileIndex].length > 0) {
+      const topCard = newTableau[sourcePileIndex][newTableau[sourcePileIndex].length - 1];
+      if (!topCard.faceUp) {
+        newTableau[sourcePileIndex][newTableau[sourcePileIndex].length - 1] = { ...topCard, faceUp: true };
+      }
+    }
+    // Add cards to target
+    newTableau[targetPileIndex] = [...tableau[targetPileIndex], ...cardsToMove];
+
+    // Check for completed suit
+    const completedCount = checkForCompletedSuit(newTableau[targetPileIndex]);
+    if (completedCount) {
+      newTableau[targetPileIndex] = newTableau[targetPileIndex].slice(0, -completedCount);
+      // Flip new top card if needed
+      if (newTableau[targetPileIndex].length > 0) {
+        const newTop = newTableau[targetPileIndex][newTableau[targetPileIndex].length - 1];
+        if (!newTop.faceUp) {
+          newTableau[targetPileIndex][newTableau[targetPileIndex].length - 1] = { ...newTop, faceUp: true };
+        }
+      }
+      setCompletedSuits(prev => prev + 1);
+      if (soundEnabled) playCompleteSound();
+    } else {
+      if (soundEnabled) playCardSound();
+    }
+
+    setTableau(newTableau);
+    setMoves(m => m + 1);
+    setSelectedCard(null);
+  }, [tableau, saveToHistory, clearHint, checkForCompletedSuit, soundEnabled]);
+
+  // Find best target for auto-move
+  const findBestTarget = useCallback((sourcePileIndex, cardIndex, cardsToMove) => {
+    let bestTarget = null;
+    let bestScore = -1;
+
+    for (let targetPileIndex = 0; targetPileIndex < tableau.length; targetPileIndex++) {
+      if (targetPileIndex === sourcePileIndex) continue;
+
+      const targetPile = tableau[targetPileIndex];
+      if (canMoveToTableau(cardsToMove, targetPile)) {
+        let score = 0;
+
+        // Prefer non-empty piles over empty piles
+        if (targetPile.length > 0) {
+          score += 100;
+
+          // Prefer longer same-suit chains
+          const topCard = targetPile[targetPile.length - 1];
+          if (topCard.suit === cardsToMove[0].suit) {
+            score += 200 + getChainLength(targetPile);
+          }
+        }
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestTarget = targetPileIndex;
+        }
+      }
+    }
+
+    return bestTarget;
+  }, [tableau, getChainLength]);
+
   const handleCardClick = (pileIndex, cardIndex) => {
     if (dealingCards || gameWon) return;
 
@@ -386,6 +562,25 @@ const SpiderSolitaire = ({ onSwitchGame }) => {
     // Check if this is a valid sequence to pick up
     if (!isValidSequence(cardsToMove)) return;
 
+    const now = Date.now();
+    const isDoubleClick = lastClickInfo &&
+      lastClickInfo.pileIndex === pileIndex &&
+      lastClickInfo.cardIndex === cardIndex &&
+      (now - lastClickInfo.timestamp) < 400;
+
+    if (isDoubleClick) {
+      // Double-click: auto-move to best target
+      setLastClickInfo(null);
+      const bestTarget = findBestTarget(pileIndex, cardIndex, cardsToMove);
+      if (bestTarget !== null) {
+        executeMove(pileIndex, cardIndex, bestTarget, cardsToMove);
+      }
+      return;
+    }
+
+    // Store click info for double-click detection
+    setLastClickInfo({ pileIndex, cardIndex, timestamp: now });
+
     if (selectedCard === null) {
       // Select the cards
       setSelectedCard({ pileIndex, cardIndex, cards: cardsToMove });
@@ -396,42 +591,10 @@ const SpiderSolitaire = ({ onSwitchGame }) => {
     } else {
       // Try to move
       if (canMoveToTableau(selectedCard.cards, pile)) {
-        saveToHistory();
-
-        const newTableau = [...tableau];
-        // Remove cards from source
-        newTableau[selectedCard.pileIndex] = tableau[selectedCard.pileIndex].slice(0, selectedCard.cardIndex);
-        // Flip top card if needed
-        if (newTableau[selectedCard.pileIndex].length > 0) {
-          const topCard = newTableau[selectedCard.pileIndex][newTableau[selectedCard.pileIndex].length - 1];
-          if (!topCard.faceUp) {
-            newTableau[selectedCard.pileIndex][newTableau[selectedCard.pileIndex].length - 1] = { ...topCard, faceUp: true };
-          }
-        }
-        // Add cards to target
-        newTableau[pileIndex] = [...pile, ...selectedCard.cards];
-
-        // Check for completed suit
-        const completedCount = checkForCompletedSuit(newTableau[pileIndex]);
-        if (completedCount) {
-          newTableau[pileIndex] = newTableau[pileIndex].slice(0, -completedCount);
-          // Flip new top card if needed
-          if (newTableau[pileIndex].length > 0) {
-            const newTop = newTableau[pileIndex][newTableau[pileIndex].length - 1];
-            if (!newTop.faceUp) {
-              newTableau[pileIndex][newTableau[pileIndex].length - 1] = { ...newTop, faceUp: true };
-            }
-          }
-          setCompletedSuits(prev => prev + 1);
-          if (soundEnabled) playCompleteSound();
-        } else {
-          if (soundEnabled) playCardSound();
-        }
-
-        setTableau(newTableau);
-        setMoves(m => m + 1);
+        executeMove(selectedCard.pileIndex, selectedCard.cardIndex, pileIndex, selectedCard.cards);
+      } else {
+        setSelectedCard(null);
       }
-      setSelectedCard(null);
     }
   };
 
@@ -439,6 +602,7 @@ const SpiderSolitaire = ({ onSwitchGame }) => {
     if (!selectedCard || dealingCards || gameWon) return;
 
     saveToHistory();
+    clearHint();
 
     const newTableau = [...tableau];
     newTableau[selectedCard.pileIndex] = tableau[selectedCard.pileIndex].slice(0, selectedCard.cardIndex);
@@ -468,6 +632,7 @@ const SpiderSolitaire = ({ onSwitchGame }) => {
     }
 
     saveToHistory();
+    clearHint();
 
     const newTableau = [...tableau];
     const newStock = [...stock];
@@ -532,10 +697,14 @@ const SpiderSolitaire = ({ onSwitchGame }) => {
       selectedCard.pileIndex === pileIndex &&
       cardIndex >= selectedCard.cardIndex;
 
+    const isHintSource = hintMove &&
+      hintMove.sourcePileIndex === pileIndex &&
+      cardIndex >= hintMove.sourceCardIndex;
+
     return (
       <div
         key={card.id}
-        className={`spider-card ${card.faceUp ? 'face-up' : 'face-down'} ${card.color} ${isSelected ? 'selected' : ''} ${isTop ? 'top-card' : ''}`}
+        className={`spider-card ${card.faceUp ? 'face-up' : 'face-down'} ${card.color} ${isSelected ? 'selected' : ''} ${isTop ? 'top-card' : ''} ${isHintSource ? 'hint-source' : ''}`}
         style={{ '--card-index': cardIndex }}
         onClick={() => card.faceUp && handleCardClick(pileIndex, cardIndex)}
       >
@@ -674,7 +843,7 @@ const SpiderSolitaire = ({ onSwitchGame }) => {
           {tableau.map((pile, pileIndex) => (
             <div
               key={pileIndex}
-              className={`spider-pile ${pile.length === 0 ? 'empty' : ''}`}
+              className={`spider-pile ${pile.length === 0 ? 'empty' : ''} ${hintMove && hintMove.targetPileIndex === pileIndex ? 'hint-target' : ''}`}
               onClick={() => pile.length === 0 && handleEmptyPileClick(pileIndex)}
             >
               {pile.length === 0 ? (
@@ -733,6 +902,13 @@ const SpiderSolitaire = ({ onSwitchGame }) => {
           disabled={history.length === 0}
         >
           ↶ Undo
+        </button>
+        <button
+          className="btn btn-hint"
+          onClick={handleHint}
+          disabled={gameWon}
+        >
+          💡 Hint
         </button>
         <button
           className="btn btn-new"
