@@ -10,6 +10,7 @@ When running or testing the application:
 
 **Production deployment requires explicit instruction:**
 - User must say "deploy to live", "deploy to production", "deploy to Netlify", or similar
+- Nightly deployments are handled automatically via GitHub Actions at 12:30 AM EST
 - Without explicit instruction, always use localhost only
 
 ## Development Commands
@@ -33,6 +34,7 @@ npm run lint             # ESLint check
 - **Backend**: None (fully client-side)
 - **Storage**: localStorage for stats and preferences
 - **Hosting**: Netlify
+- **CI/CD**: GitHub Actions nightly deploy at 12:30 AM EST
 - **PWA**: Yes - offline capable
 
 ## Key Features
