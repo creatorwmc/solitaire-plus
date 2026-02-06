@@ -699,7 +699,7 @@ const SpiderSolitaire = ({ onSwitchGame }) => {
 
     const isHintSource = hintMove &&
       hintMove.sourcePileIndex === pileIndex &&
-      cardIndex >= hintMove.sourceCardIndex;
+      cardIndex === hintMove.sourceCardIndex;
 
     return (
       <div
