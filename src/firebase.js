@@ -142,11 +142,20 @@ export const submitRating = async (rating, message, playerName = '') => {
   const deviceId = getDeviceId();
   const deviceInfo = getDeviceInfo();
 
+  // Input validation and sanitization
+  const sanitizedName = typeof playerName === 'string' ? playerName.trim().substring(0, 30) : '';
+  const sanitizedMessage = typeof message === 'string' ? message.trim().substring(0, 500) : '';
+  const sanitizedRating = Math.min(5, Math.max(1, Math.floor(Number(rating) || 0)));
+
+  if (sanitizedRating < 1 || sanitizedRating > 5) {
+    return { success: false, error: 'Invalid rating value' };
+  }
+
   const ratingData = {
     deviceId,
-    playerName: playerName || 'Anonymous',
-    rating,
-    message: message || '',
+    playerName: sanitizedName || 'Anonymous',
+    rating: sanitizedRating,
+    message: sanitizedMessage,
     timestamp: new Date().toISOString(),
     ...deviceInfo
   };

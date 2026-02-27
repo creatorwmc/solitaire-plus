@@ -455,8 +455,9 @@ const Solitaire = ({ onSwitchGame }) => {
 
   // Save player name
   const handleSavePlayerName = (name) => {
-    setPlayerName(name);
-    localStorage.setItem('solitaire_playerName', name);
+    const sanitized = name.substring(0, 30);
+    setPlayerName(sanitized);
+    localStorage.setItem('solitaire_playerName', sanitized.trim());
   };
 
   // Handle admin tap (tap version 7 times to toggle admin)
@@ -505,7 +506,9 @@ const Solitaire = ({ onSwitchGame }) => {
   const handleSubmitRating = async () => {
     if (ratingValue === 0) return;
 
-    await submitRating(ratingValue, ratingMessage, playerName);
+    const trimmedMessage = ratingMessage.trim().substring(0, 500);
+    const trimmedName = playerName.trim().substring(0, 30);
+    await submitRating(ratingValue, trimmedMessage, trimmedName);
     setHasRated(true);
     localStorage.setItem('solitaire_hasRated', 'true');
     setShowRateModal(false);
@@ -2416,7 +2419,7 @@ const Solitaire = ({ onSwitchGame }) => {
                 placeholder="Your name (optional)"
                 value={playerName}
                 onChange={(e) => handleSavePlayerName(e.target.value)}
-                maxLength={20}
+                maxLength={30}
               />
             </div>
             <button className="share-stats-btn" onClick={handleShareStats}>
@@ -2543,6 +2546,7 @@ const Solitaire = ({ onSwitchGame }) => {
               placeholder="Tell us what you think (optional)..."
               value={ratingMessage}
               onChange={(e) => setRatingMessage(e.target.value)}
+              maxLength={500}
               rows={3}
             />
 
