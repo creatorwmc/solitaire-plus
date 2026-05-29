@@ -5,7 +5,7 @@
 **DEFAULT: Local development only. NEVER deploy to production unless explicitly told "deploy to live".**
 
 When running or testing the application:
-- Use `npm run dev` for local development server (localhost:5173)
+- Use `npm run dev` for local development server (localhost:5156)
 - Do NOT deploy to Netlify production unless explicitly requested
 
 **Production deployment requires explicit instruction:**
@@ -17,7 +17,7 @@ When running or testing the application:
 
 ```bash
 # Local development (DEFAULT)
-npm run dev              # Vite dev server on localhost:5173
+npm run dev              # Vite dev server on localhost:5156
 
 # Build (for testing build locally)
 npm run build            # Production build to /dist
