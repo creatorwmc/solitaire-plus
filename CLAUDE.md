@@ -10,7 +10,7 @@ When running or testing the application:
 
 **Production deployment requires explicit instruction:**
 - User must say "deploy to live", "deploy to production", "deploy to Netlify", or similar
-- Nightly deployments are handled automatically via GitHub Actions at 12:30 AM EST
+- There is no CI deploy — the nightly workflow was removed 2026-06-01. Production ships only from a local `netlify deploy --prod`.
 - Without explicit instruction, always use localhost only
 
 ## Development Commands
@@ -34,7 +34,7 @@ npm run lint             # ESLint check
 - **Backend**: None (fully client-side)
 - **Storage**: localStorage for stats and preferences
 - **Hosting**: Netlify
-- **CI/CD**: GitHub Actions nightly deploy at 12:30 AM EST
+- **CI/CD**: none, by policy — deploy on request
 - **PWA**: Yes - offline capable
 
 ## Key Features
