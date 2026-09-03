@@ -15,6 +15,7 @@ export default defineConfig({
         theme_color: '#0f0f1a',
         background_color: '#0f0f1a',
         display: 'standalone',
+        launch_handler: { client_mode: 'focus-existing' },
         icons: [
           {
             src: 'favicon.svg',
